@@ -1,227 +1,80 @@
-# Telenor E2E GUI Testing Challenge
+# Telenor Bredband GUI Challenge
 
-Automated UI browser testing for Telenor's broadband product search using **Playwright** with **TypeScript** and **Page Object Model (POM)** architecture.
+Playwright + TypeScript end-to-end test suite that automates the real telenor.se click path: homepage → Broadband nav dropdown → "Bredband via fiber" → address search → featured product grid verification.
 
-## Challenge Overview
+## Challenge requirements
 
-Navigate to telenor.se and automate the following user flow:
-1. Open Telenor website
-2. Navigate to "Handla" (Shop) → "Bredband" (Broadband)
+1. Navigate to telenor.se
+2. Click through to the Bredband section
 3. Enter address: `Kungsgatan 103, Uppsala`
-4. Verify featured product grid displays at least one product
+4. Verify the featured product grid is not empty
 
-## Project Structure
+See [ASSUMPTIONS.md](ASSUMPTIONS.md) for every deviation from the literal brief and the real-site findings behind each one (e.g. the actual nav path, the real grid selector, the suggestion-select-submits-the-search behavior).
 
-```
-telenor-api-challenge/
-├── tests/
-│   └── telenor-bredband.spec.ts          # Test specifications
-├── pages/
-│   ├── basePage.ts                        # Base page class with common methods
-│   └── bredband.page.ts                   # Bredband page object model
-├── utils/
-│   └── custom-expect.ts                   # Custom assertions
-├── api-test.config.ts                     # Configuration file
-├── playwright.config.ts                   # Playwright configuration
-├── tsconfig.json                          # TypeScript configuration
-├── package.json                           # Dependencies & scripts
-└── README.md                              # This file
-```
-
-## Installation
+## Setup
 
 ```bash
 npm install
+npx playwright install chromium
 ```
 
-## Running Tests
+## Running the tests
 
-### Run all tests
 ```bash
-npm test
+npm test                # run the full suite (headless, 1 worker, sequential)
+npm run test:debug      # step-by-step Playwright Inspector
+npm run test:ui         # interactive UI mode
+npm run test:report     # open the Playwright HTML report from the last run
 ```
 
-### Run tests with UI (interactive mode)
+## Allure reporting
+
 ```bash
-npm run test:ui
+npm run allure:generate   # generate allure-report/ from allure-results/
+npm run allure:report     # generate and open it locally
+npm run allure:clean      # remove allure-results/ and allure-report/
 ```
 
-### Run tests in debug mode
-```bash
-npm run test:debug
-```
+In CI, the Allure report is uploaded as a workflow artifact on every run and deployed to GitHub Pages on every push to `main`.
 
-### View HTML report
-```bash
-npm run test:report
-```
-
-## Allure Reporting
-
-Allure provides comprehensive test execution reports with detailed analytics.
-
-### Generate Allure Report
-```bash
-npm run allure:generate
-```
-
-### Generate and Open Allure Report
-```bash
-npm run allure:report
-```
-
-### Clean Allure Results
-```bash
-npm run allure:clean
-```
-
-### Allure Report Contents
-
-The Allure report includes:
-- ✅ Test execution overview
-- 📊 Pass/Fail statistics
-- ⏱️ Test duration metrics
-- 📸 Screenshots of failures
-- 🎥 Video recordings
-- 📝 Step-by-step test flow
-- 🏷️ Test categories & tags
-
-## Page Object Model (POM)
-
-### BasePage
-Common functionality shared across all pages:
-- Navigation
-- Cookie banner dismissal
-- Page load waits
-- Utility methods
-
-### BreddbandPage
-Bredband-specific page object with:
-- Selectors for all page elements
-- Methods for user interactions
-- Assertions for page state
-
-**Example Usage:**
-```typescript
-await breddbandPage.navigateToBredband();
-await breddbandPage.dismissCookieBanner();
-await breddbandPage.enterAddress('Kungsgatan 103, Uppsala');
-await breddbandPage.verifyProductGridNotEmpty();
-```
-
-## Test Cases
-
-### TC-001: Navigate to Bredband and verify featured products
-- **Status**: ✅ Passing
-- **Steps**: 
-  1. Navigate to Bredband page
-  2. Dismiss cookie banner
-  3. Verify page title
-  4. Enter address (if needed)
-  5. Verify product grid has items
-  6. Verify products are visible
-
-### TC-002: Verify Bredband page heading
-- **Status**: ✅ Passing
-- **Validates**: Page title contains "Bredband"
-
-### TC-003: Verify address input field is present
-- **Status**: ✅ Passing
-- **Validates**: Address input field exists and is visible
-
-### TC-004: Verify product count and visibility
-- **Status**: ⚠️ Requires address entry
-- **Note**: This test validates products appear only after address is entered
-
-## Configuration
-
-### Environment Setup
-Edit `api-test.config.ts` to configure:
-- Base URL (default: https://www.telenor.se)
-- Test address (default: Kungsgatan 103, Uppsala)
-- Environment-specific settings
-
-### Playwright Config
-`playwright.config.ts` settings:
-- Browser: Chromium
-- Test timeout: 60 seconds
-- Screenshot on failure: Enabled
-- Video on failure: Enabled
-- Trace: On first retry
-
-## Test Execution Flow
+## Project structure
 
 ```
-1. beforeEach() → Initialize page object
-   ↓
-2. Test Step 1 → Navigate & Dismiss Cookie
-   ↓
-3. Test Step 2 → Fill Address (if empty)
-   ↓
-4. Test Step 3 → Submit & Verify
-   ↓
-5. afterEach() → Cleanup
+pages/
+  basePage.ts             shared SPA chrome: navigation, cookie consent
+  bredband.page.ts         Bredband feature page: nav dropdown, address
+                            search, product grid
+tests/
+  telenor-bredband.spec.ts the 4 test cases, calling only page-object methods
+api-test.config.ts          base URL and test address
+playwright.config.ts        Playwright + Allure reporter config
+.github/workflows/
+  e2e-tests.yml              runs the suite on push/PR, deploys Allure to Pages
 ```
 
-## Key Selectors
+All locators are declared in each page class's constructor. All interactions and assertions are methods on the page classes. The test file only calls those methods and asserts on their return values — it contains no selectors. Waits are dynamic (`waitFor`, `expect(...).toHaveValue/toBeVisible`); there are no fixed-duration sleeps.
 
-| Element | Selector |
-|---------|----------|
-| Page Heading | `h1, h2` |
-| Address Input | `input[type="text"]` |
-| Search Button | `button:has-text("Sök")` |
-| Product Items | `div[class*="featured-product-grid-item"]` |
-| Address Options | `[role="option"]` |
+## Test cases
 
-## Troubleshooting
+| ID | What it checks |
+|---|---|
+| TC-001 | Full workflow: navigate, enter address, verify the product grid is populated and visible |
+| TC-002 | The Bredband page heading is reached after the real nav click-through |
+| TC-003 | The address input field is present and visible |
+| TC-004 | Product count and visibility after a successful address search |
 
-### Tests Timeout
-- Check internet connection
-- Increase timeout in `playwright.config.ts`
-- Run in debug mode: `npm run test:debug`
+## CI/CD
 
-### Cookie Banner Not Dismissing
-- The test handles both cases (banner present/absent)
-- Check selector in `basePage.ts` dismissCookieBanner()
+`.github/workflows/e2e-tests.yml` runs on every push and pull request to `main`/`develop`:
 
-### Products Not Found
-- Verify address is correctly entered
-- Check product selector matches current DOM structure
-- Use Playwright Inspector: `npx playwright codegen`
+- Installs dependencies and Chromium
+- Runs the suite (`npm test`)
+- Generates the Allure report
+- Uploads the Allure report, raw Allure results, and Playwright HTML report as artifacts
+- On pushes to `main` only: deploys the Allure report to GitHub Pages
 
-## Best Practices Used
+Repository must have **Settings → Pages → Build and deployment → Source** set to **GitHub Actions**, and must be public (or on a paid plan) for Pages to be available at all — see [ASSUMPTIONS.md](ASSUMPTIONS.md) for details.
 
-✅ **Page Object Model**: Maintainable and reusable code
-✅ **Real-time Assertions**: Immediate feedback on failures
-✅ **Error Handling**: Graceful handling of optional elements
-✅ **TypeScript**: Type safety and better IDE support
-✅ **Allure Reporting**: Detailed test execution insights
-✅ **Parallel Execution**: Faster test runs
-✅ **Screenshots & Videos**: Visual debugging of failures
+## Branching
 
-## CI/CD Integration
-
-This project is ready for GitHub Actions integration with:
-- Automated test execution on push/PR
-- Allure report generation
-- Artifact storage for reports
-- GitHub Pages deployment (optional)
-
-## Technologies Used
-
-- **Playwright** 1.64+ - Browser automation
-- **TypeScript** 7.0+ - Type-safe code
-- **Allure** 2.46+ - Test reporting
-- **Node.js** 18+ - Runtime environment
-
-## Author
-
-Sajid Manzoor (sajidmanzoor50@gmail.com)
-
-## License
-
-ISC
-
----
-
-**Last Updated**: October 29, 2026
+See [BRANCHING.md](BRANCHING.md) for the branching strategy used in this repository (feature branch → PR → merge into `main`; CI gates every merge).

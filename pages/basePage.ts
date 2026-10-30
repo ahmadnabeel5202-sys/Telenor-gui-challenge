@@ -20,9 +20,6 @@ export class BasePage {
 
   async dismissCookieBanner(): Promise<void> {
     console.log('Attempting to dismiss cookie banner');
-    // The consent dialog loads asynchronously and can appear a moment after
-    // navigation, so wait properly for it rather than taking a quick peek
-    // (a short isVisible() check can run before the dialog exists and miss it).
     const appeared = await this.cookieButtons
       .first()
       .waitFor({ state: 'visible', timeout: 6000 })
