@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { config } from '../api-test.config';
+import { config } from '../test.config';
 import { BreddbandPage } from '../pages/bredband.page';
 
 test.describe('Telenor Bredband E2E GUI Tests', () => {

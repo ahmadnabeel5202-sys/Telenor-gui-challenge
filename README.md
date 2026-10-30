@@ -46,7 +46,7 @@ pages/
                             search, product grid
 tests/
   telenor-bredband.spec.ts the 4 test cases, calling only page-object methods
-api-test.config.ts          base URL and test address
+test.config.ts               base URL and test address
 playwright.config.ts        Playwright + Allure reporter config
 .github/workflows/
   e2e-tests.yml              runs the suite on push/PR, deploys Allure to Pages
