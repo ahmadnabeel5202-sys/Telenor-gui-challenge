@@ -13,16 +13,7 @@ export class BreddbandPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    // Top-nav "Broadband"/"Bredband" item that expands the dropdown menu.
-    // Resolved by accessible role+name (matches what the a11y tree reports
-    // as `button "Bredband" [expanded]`) instead of a raw CSS attribute
-    // selector, since the page has multiple similarly-attributed elements
-    // (e.g. a responsive duplicate) that aren't the real interactive control.
     this.broadbandNavTrigger = this.page.getByRole('button', { name: /^(Broadband|Bredband)$/i }).first();
-    // "Bredband via fiber" sub-item inside the opened dropdown. The same
-    // href appears ~23 times elsewhere on the page (footer, promo cards,
-    // other hidden nav states), so this is resolved by accessible role+name
-    // rather than href/class, matching the link Playwright can actually see.
     this.bredbandViaFiberLink = this.page.getByRole('link', { name: /^Bredband via fiber/i }).first();
     this.addressInput = this.page.locator('input[type="text"]').first();
     this.addressOptions = this.page.locator('[role="option"]');
@@ -31,7 +22,6 @@ export class BreddbandPage extends BasePage {
     this.pageTitle = this.page.locator('main#main h1').first();
   }
 
-  // NAVIGATION METHODS
   async navigateToHomepage(): Promise<void> {
     console.log('Navigating to Telenor homepage');
     await this.navigateTo('/');
@@ -42,9 +32,6 @@ export class BreddbandPage extends BasePage {
     await this.broadbandNavTrigger.waitFor({ state: 'visible', timeout: 10000 });
     await this.broadbandNavTrigger.click();
 
-    // aria-expanded flipping to true only confirms the trigger's own state —
-    // it does not prove the submenu items are actually visible/clickable, so
-    // assert directly on the link we're about to click next.
     await expect(this.broadbandNavTrigger).toHaveAttribute('aria-expanded', 'true', { timeout: 5000 });
     await expect(this.bredbandViaFiberLink).toBeVisible({ timeout: 5000 });
     console.log('✓ Broadband dropdown opened and submenu items are visible');
@@ -66,7 +53,6 @@ export class BreddbandPage extends BasePage {
     await this.clickBredbandViaFiber();
   }
 
-  // ADDRESS ENTRY METHODS
   async getAddressInputValue(): Promise<string | null> {
     console.log('Getting address input value');
     try {
@@ -96,19 +82,12 @@ export class BreddbandPage extends BasePage {
     console.log(`Filling address: ${address}`);
 
     await this.addressInput.waitFor({ state: 'visible', timeout: 10000 });
-
-    // This combobox resets its own caret to index 0 on re-render, so
-    // pressSequentially() (real per-key typing) ends up inserting later
-    // characters at the start of the string instead of the end. fill()
-    // sets the whole value in one atomic operation and still dispatches
-    // input/change, which is enough to trigger the suggestions fetch.
     await this.addressInput.fill(address);
 
     await expect(this.addressInput).toHaveValue(address, { timeout: 5000 });
     console.log(`✓ Address filled successfully: ${address}`);
   }
 
-  // ADDRESS SUGGESTION METHODS
   async areAddressSuggestionsVisible(): Promise<boolean> {
     console.log('Checking if address suggestions are visible');
     try {
@@ -122,15 +101,11 @@ export class BreddbandPage extends BasePage {
   async selectAddressSuggestion(address: string): Promise<void> {
     console.log('Selecting address suggestion');
 
-    // Wait for a suggestion matching the typed address to appear
-    // (ignores any stale/preselected option left over from page load).
-    // The widget renders suggestion text in uppercase, so match case-insensitively.
     const streetPart = address.split(',')[0];
     const matchingOption = this.addressOptions.filter({ hasText: new RegExp(streetPart, 'i') }).first();
     await matchingOption.waitFor({ state: 'visible', timeout: 10000 });
     await matchingOption.click();
 
-    // Wait for suggestions list to close (confirms selection was registered)
     await this.addressOptions.first().waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {
       console.log('Suggestions list did not hide within timeout, continuing');
     });
@@ -141,14 +116,6 @@ export class BreddbandPage extends BasePage {
   async submitAddressSearch(address: string): Promise<void> {
     console.log('Submitting address search');
 
-    // Selecting a suggestion from the dropdown submits the search itself —
-    // confirmed by inspection: once a suggestion is picked, the circular
-    // arrow submit button is replaced by a clear (X) button, so nothing
-    // further needs to be clicked or pressed in that path.
-    //
-    // When no matching suggestion appears (manual free-text address), the
-    // arrow submit button is unreliable in automation, so Enter is used to
-    // trigger the search instead.
     const hasSuggestions = await this.areAddressSuggestionsVisible();
 
     if (hasSuggestions) {
@@ -159,7 +126,6 @@ export class BreddbandPage extends BasePage {
     }
   }
 
-  // PRODUCT GRID METHODS
   async getProductGridItemCount(): Promise<number> {
     console.log('Getting product grid item count');
 
@@ -217,7 +183,6 @@ export class BreddbandPage extends BasePage {
     console.log('✓ First product is visible');
   }
 
-  // PAGE TITLE METHODS
   async verifyPageTitle(): Promise<void> {
     console.log('Verifying page title contains Bredband');
 
@@ -228,7 +193,6 @@ export class BreddbandPage extends BasePage {
     console.log('✓ Page title verified');
   }
 
-  // COMBINED WORKFLOW METHODS
   async enterAddressIfEmpty(address: string): Promise<void> {
     console.log('Checking and entering address if needed');
 
